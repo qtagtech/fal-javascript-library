@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+
+<head>
+<meta charset="UTF-8"/>
+    <title>Bitdeli JS Tracking library test</title>
+    <script src="../src/snippet.js"></script>
+    <script type="text/javascript">
+        (function() {
+
+        console.log("******** BEGIN TEST ********");
+
+        var callback = function(method) {
+            return function(resp, data, timedOut) {
+                var success = resp === 1 || resp.uid || resp.status == "ok";
+                console.log(success ? "SUCCESS" : "ERROR", method, this);
+                console.log("response", JSON.stringify(resp));
+                console.log("data", JSON.stringify(data));
+                console.log("---");
+            };
+        };
+
+        _falq.push(["setOnce", { initialReferrer: document.referrer }]);
+        _falq.push(["set", { username: "foobar" }]);
+        _falq.push(["trackPageview", callback("trackPageview")]);
+        _falq.push(["track", "loaded test page", { action: "test" }, callback("track")]);
+        _falq.push(["trackSubmit", "#test-form", "submitted test form", { action: "submit" }, callback("trackSubmit")]);
+
+        _falq.push(["trackClick", ".outbound-link", "clicked outbound link", function() {
+            var href = this.href,
+                number = parseInt(href.charAt(href.length - 1), 10);
+            return {
+                action: "click",
+                link_num: number
+            };
+        }, callback("trackClick")]);
+
+        _falq.push(["trackRaw", [
+            { $event_name: "raw test", raw_property: 5 },
+            { $event_name: "raw test", raw_property: 6 }
+        ], callback("trackRaw")]);
+
+        })();
+    </script>
+</head>
+
+<body>
+
+<h1>Bitdeli JS Tracking library test</h1>
+
+<ul>
+    <li><a href="?1" class="outbound-link">Outbound link 1</a></li>
+    <li><a href="?2" class="outbound-link">Outbound link 2</a></li>
+    <li><a href="?3" class="outbound-link">Outbound link 3</a></li>
+</ul>
+
+<form id="test-form">
+    <button type="submit">Submit form</button>
+</form>
+
+</body>
+
+</html>

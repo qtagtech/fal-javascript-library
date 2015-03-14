@@ -1,0 +1,18 @@
+{
+    "name": "fal-js-library",
+    "version": "0.0.1",
+    "author": "Juan D Arroyave. <me@juandavidarroyave.com>",
+    "description": "JavaScript tracking library for FreeAppsListing By Amplificious",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/qtagtech/"
+    },
+    "dependencies": {
+        "domready": "0.2.11",
+        "underscore": "1.4.4",
+        "ender-json": "1.1.0"
+    },
+    "license": "MIT",
+    "private": true,
+    "main": "./src/fal-tracking.js"
+}

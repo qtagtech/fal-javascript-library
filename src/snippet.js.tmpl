@@ -1,0 +1,10 @@
+var _falq = _falq || [];
+_falq.push(["setAccount", "{{BITDELI_INPUT_ID}}", "{{BITDELI_INPUT_AUTH}}"]);
+_falq.push(["trackPageview"]);
+
+(function() {
+    var fal = document.createElement("script"); fal.type = "text/javascript"; fal.async = true;
+    // fal.src = ("https:" == document.location.protocol ? "https://" : "http://") + "d2flrkr957qc5j.cloudfront.net/bitdeli-{{LIB_VERSION}}.min.js";
+    fal.src = "../build/bitdeli-{{LIB_VERSION}}.js";
+    var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(fal, s);
+})();
