@@ -21,12 +21,12 @@
         };
 
         _falq.push(["setOnce", { initialReferrer: document.referrer }]);
-        _falq.push(["set", { username: "foobar" }]);
+        _falq.push(["set", { username: "juanda6" }]); //puts value in the cookie element
         _falq.push(["trackPageview", callback("trackPageview")]);
-        _falq.push(["track", "loaded test page", { action: "test" }, callback("track")]);
-        _falq.push(["trackSubmit", "#test-form", "submitted test form", { action: "submit" }, callback("trackSubmit")]);
+        /*_falq.push(["track", "loaded test page", { action: "test" }, callback("track")]);
+        _falq.push(["trackSubmit", "#test-form", "submitted test form", { action: "submit" }, callback("trackSubmit")]);*/
 
-        _falq.push(["trackClick", ".outbound-link", "clicked outbound link", function() {
+        /*_falq.push(["trackClick", ".outbound-link", "clicked outbound link", function() {
             var href = this.href,
                 number = parseInt(href.charAt(href.length - 1), 10);
             return {
@@ -38,10 +38,15 @@
         _falq.push(["trackRaw", [
             { $event_name: "raw test", raw_property: 5 },
             { $event_name: "raw test", raw_property: 6 }
-        ], callback("trackRaw")]);
+        ], callback("trackRaw")]);*/
 
         })();
     </script>
+
+    
+<noscript>
+    <img id="falpixel" height="1" width="1" src="http://requestb.in/sovzseso?desdepixel=true" alt="">
+</noscript>
 </head>
 
 <body>

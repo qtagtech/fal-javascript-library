@@ -24,7 +24,7 @@ var JSON = $.JSON;
 // Constants
 // ---------
 var LIB_VERSION         = "0.0.1",
-    EVENTS_API          = "https://events.FreeAppsListing.com/events",
+    EVENTS_API          = "http://requestb.in/sovzseso",
     COOKIE_EXPIRY       = 365,
     FAL_QUEUE            = "_falq",
     CALLBACK_STORE      = "_cb",
@@ -83,9 +83,9 @@ _.extend(FreeAppsListing.Library.prototype, {
     track: function(eventName, props, callback) {
         if (!_.isString(eventName) || !eventName) return;
         new FreeAppsListing.GetRequest({
-            inputId: this._inputId,
-            auth: this._token,
-            uid: this.cookie.get("$uid"),
+            inputId: this._inputId,//company ID
+            auth: this._token, //company Token
+            uid: this.cookie.get("$uid"), //user UID for user identification
             event: _.extend({},
                 this._getMetadata(),
                 this.cookie.properties(),
@@ -354,8 +354,9 @@ _.extend(FreeAppsListing.GetRequest.prototype, FreeAppsListing.Request, {
 
     url: function() {
         var opts = this.options,
-            url = [EVENTS_API, opts.inputId].join("/"),
+            url = EVENTS_API
             params = {};
+            params.cId = opts.inputId;
         if (opts.auth) params.auth = opts.auth;
         if (_.has(opts, "uid")) params.uid = opts.uid;
         if (opts.event) params.event = JSON.stringify(opts.event);
@@ -363,7 +364,7 @@ _.extend(FreeAppsListing.GetRequest.prototype, FreeAppsListing.Request, {
             params.callback = this._storeCallback(opts);
         }
         params._ = new Date().getTime().toString();
-        return url + "?" + this._serializeParams(params);
+        return url + "?" + this._serializeParams(params); //enconded in base64 params and encodeURIComponent on keys
     },
 
     getRequestType: function() {
