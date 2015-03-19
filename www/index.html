@@ -10,19 +10,9 @@
 
         console.log("******** BEGIN TEST ********");
 
-        var callback = function(method) {
-            return function(resp, data, timedOut) {
-                var success = resp === 1 || resp.uid || resp.status == "ok";
-                console.log(success ? "SUCCESS" : "ERROR", method, this);
-                console.log("response", JSON.stringify(resp));
-                console.log("data", JSON.stringify(data));
-                console.log("---");
-            };
-        };
-
-        _falq.push(["setOnce", { initialReferrer: document.referrer }]);
-        _falq.push(["set", { username: "juanda6" }]); //puts value in the cookie element
-        _falq.push(["trackPageview", callback("trackPageview")]);
+        //_falq.push(["setOnce", { initialReferrer: document.referrer }]);
+        //_falq.push(["set", { username: "juanda6" }]); //puts value in the cookie element
+        //_falq.push(["trackPageview", callback("trackPageview")]);
         /*_falq.push(["track", "loaded test page", { action: "test" }, callback("track")]);
         _falq.push(["trackSubmit", "#test-form", "submitted test form", { action: "submit" }, callback("trackSubmit")]);*/
 
@@ -62,6 +52,12 @@
 <form id="test-form">
     <button type="submit">Submit form</button>
 </form>
+
+<h1>Your browser fingerprint:</h1>
+  <h2><i id="fp"/></h2>
+  <script>
+    
+  </script>
 
 </body>
 

@@ -10,7 +10,9 @@
     "dependencies": {
         "domready": "0.2.11",
         "underscore": "1.4.4",
-        "ender-json": "1.1.0"
+        "ender-json": "1.1.0",
+        "swfobject": "2.2.0",
+        "fingerprint": "0.0.1"
     },
     "license": "MIT",
     "private": true,

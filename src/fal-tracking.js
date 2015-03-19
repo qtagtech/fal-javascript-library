@@ -16,6 +16,8 @@
 // Dependencies
 // ------------
 var _       = require("underscore");
+require("swfobject");
+var Fingerprint2 = require("fingerprint");
 
 // Uses native JSON implementation if available
 var JSON = $.JSON;
@@ -52,14 +54,31 @@ _.extend(FreeAppsListing.Library.prototype, {
     push: function() {
         var args = Array.prototype.slice.call(arguments);
         this.queue.executeAll(args);
+        
     },
 
     setAccount: function(inputId, token) {
         if (!_.isString(inputId) || !_.isString(token)) return;
         this._inputId = inputId;
         this._token = token;
-        this.cookie = new FreeAppsListing.Cookie({
+        /*this.cookie = new FreeAppsListing.Cookie({
             name: inputId
+        });*/
+    },
+    setFingerprint: function(callback) {
+        this.fingerprint = new FreeAppsListing.Fingerprint({callback:callback},function(response,objects){
+            new FreeAppsListing.GetRequest({
+                    inputId: this._inputId,//company ID
+                    auth: this._token, //company Token
+                    fingerprint: response, //user UID for user identification
+                    event: _.extend({},
+                    response,
+                    { $event_name: "setFingerprint" }
+                ),
+                callback: objects.callback,
+                callbackStore: this[CALLBACK_STORE]
+            });
+
         });
     },
 
@@ -75,27 +94,61 @@ _.extend(FreeAppsListing.Library.prototype, {
     setOnce: function(props) {
         this.cookie.setOnce(props);
     },
-
     unset: function(prop) {
         this.cookie.unset(prop);
     },
 
     track: function(eventName, props, callback) {
         if (!_.isString(eventName) || !eventName) return;
-        new FreeAppsListing.GetRequest({
-            inputId: this._inputId,//company ID
-            auth: this._token, //company Token
-            uid: this.cookie.get("$uid"), //user UID for user identification
-            event: _.extend({},
-                this._getMetadata(),
-                this.cookie.properties(),
-                { $event_name: eventName },
-                props
-            ),
-            callback: callback,
-            callbackStore: this[CALLBACK_STORE]
-        });
+        if(_.isUndefined(this.fingerprint)){
+
+            new FreeAppsListing.Fingerprint({callback:callback,eventName:eventName,props:props,inputId:this._inputId,token: this._token},
+                function(response,objects){
+                    new FreeAppsListing.GetRequest({
+                        inputId: objects.inputId,//company ID
+                        auth: objects.token, //company Token
+                        fingerprint: response, //user UID for user identification
+                        event: _.extend({},
+                            { $user : response },
+                            objects.props,
+                            { $event_name: objects.eventName }
+                        ),
+                        callback: objects.callback,
+                        callbackStore: this[CALLBACK_STORE]
+                    });
+                });  
+        }else{
+           new FreeAppsListing.GetRequest({
+                inputId: this._inputId,//company ID
+                auth: this._token, //company Token
+                fingerprint: this.fingerprint, //user UID for user identification
+                event: _.extend({},
+                    this.fingerprint,
+                    props,
+                    { $event_name: eventName }
+                ),
+                callback: callback,
+                callbackStore: this[CALLBACK_STORE]
+            }); 
+        }
+
+        
+        /*new FreeAppsListing.GetRequest({
+                    inputId: this._inputId,//company ID
+                    auth: this._token, //company Token
+                    fingerprint: this._fingerprint, //user UID for user identification
+                    event: _.extend({},
+                    this._getMetadata(),
+                    this._fingerprint,
+                    { $event_name: eventName },
+                    props
+                ),
+                callback: callback,
+                callbackStore: this[CALLBACK_STORE]
+            });*/
     },
+
+    
 
     trackPageview: function(page, callback) {
         // First argument can be the callback
@@ -161,7 +214,6 @@ _.extend(FreeAppsListing.Library.prototype, {
             $lib_ver: this._version
         };
     }
-
 });
 
 
@@ -209,6 +261,7 @@ FreeAppsListing.Cookie = function(options) {
         $uid: this._generateUUID()
     });
 };
+
 
 _.extend(FreeAppsListing.Cookie.prototype, {
 
@@ -262,6 +315,26 @@ _.extend(FreeAppsListing.Cookie.prototype, {
 
 });
 
+// Tracking fingerprint wrapper
+FreeAppsListing.Fingerprint = function(options,callback) {
+    if (_.isFunction(options)) {
+            callback = options;
+            options = void 0;
+        }
+    this.options = options;
+    this.props = {};
+    this.load(options,callback);
+    };
+
+    _.extend(FreeAppsListing.Fingerprint.prototype, {
+
+    load: function(objects,callback) {
+        var fp = new Fingerprint2();
+        fp.get(function(response){
+            if(_.isFunction(callback)) callback(response,objects);
+        });
+    }
+});
 
 // Base interface for request classes
 FreeAppsListing.Request = {
@@ -344,6 +417,7 @@ FreeAppsListing.Request = {
 
 // GET request wrapper
 FreeAppsListing.GetRequest = function(options) {
+    console.log(options);
     this.options = _.extend({}, {
         method: "GET"
     }, options);
@@ -358,7 +432,7 @@ _.extend(FreeAppsListing.GetRequest.prototype, FreeAppsListing.Request, {
             params = {};
             params.cId = opts.inputId;
         if (opts.auth) params.auth = opts.auth;
-        if (_.has(opts, "uid")) params.uid = opts.uid;
+        if (_.has(opts, "fingerprint")) params.fingerprint = opts.fingerprint;
         if (opts.event) params.event = JSON.stringify(opts.event);
         if (opts.jsonp && _.isFunction(opts.callback)) {
             params.callback = this._storeCallback(opts);
@@ -1000,6 +1074,8 @@ _.UUID = (function() {
     });
 
 }(context));
+
+
 
 
 // FreeAppsListing tracking library entry point
