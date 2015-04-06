@@ -21,12 +21,16 @@ var Fingerprint2 = require("fingerprint");
 
 // Uses native JSON implementation if available
 var JSON = $.JSON;
+var ACTION_IDENTIFY = 1;
+var ACTION_TRACK = 2;
 
 
 // Constants
 // ---------
 var LIB_VERSION         = "0.0.1",
-    EVENTS_API          = "http://requestb.in/sovzseso",
+    EVENTS_API          = "http://postcatcher.in/catchers",
+    EVENTS_IDENTIFY     = "5520da9ddc573f0300000093",
+    EVENTS_TRACK        = "5520f9fbdc573f0300000720",
     COOKIE_EXPIRY       = 365,
     FAL_QUEUE            = "_falq",
     CALLBACK_STORE      = "_cb",
@@ -66,18 +70,38 @@ _.extend(FreeAppsListing.Library.prototype, {
         });*/
     },
     setFingerprint: function(callback) {
-        this.fingerprint = new FreeAppsListing.Fingerprint({callback:callback},function(response,objects){
-            new FreeAppsListing.GetRequest({
+        var inputId = this._inputId;
+        var token = this._token;
+        new FreeAppsListing.Fingerprint(function(response,objects){
+            $.cache('user').set('fingerprint',response);
+            var conversion = $.cache('user').get('conversion');
+            var bSend = {
+                    "inputId": inputId,//company ID
+                    "auth": token, //company Token
+                    "fingerprint": response, //user UID for user identification
+                    "conversion":conversion,
+                    "event": _.extend({},
+                         { "$user" : response },
+                           { "$event_name": "setFingerprint" }
+                        )
+                    };
+            //console.log(bSend);
+                    new FreeAppsListing.PostRequest({
+                            action: ACTION_IDENTIFY,
+                            inputId: this._inputId,
+                            body: JSON.stringify(bSend),
+                            callback: callback
+                    });
+            /*new FreeAppsListing.GetRequest({
                     inputId: this._inputId,//company ID
                     auth: this._token, //company Token
                     fingerprint: response, //user UID for user identification
                     event: _.extend({},
-                    response,
                     { $event_name: "setFingerprint" }
                 ),
-                callback: objects.callback,
+                callback: callback,
                 callbackStore: this[CALLBACK_STORE]
-            });
+            });*/
 
         });
     },
@@ -100,36 +124,63 @@ _.extend(FreeAppsListing.Library.prototype, {
 
     track: function(eventName, props, callback) {
         if (!_.isString(eventName) || !eventName) return;
-        if(_.isUndefined(this.fingerprint)){
-
-            new FreeAppsListing.Fingerprint({callback:callback,eventName:eventName,props:props,inputId:this._inputId,token: this._token},
-                function(response,objects){
-                    new FreeAppsListing.GetRequest({
-                        inputId: objects.inputId,//company ID
-                        auth: objects.token, //company Token
+        if(_.isUndefined($.cache('user').get('fingerprint'))){
+            inputId = this._inputId;
+            token = this._token;
+            new FreeAppsListing.Fingerprint(
+                function(response){
+                    $.cache('user').set('fingerprint',response); 
+                    var conversion = $.cache('user').get('conversion');
+                    /*new FreeAppsListing.GetRequest({
+                        inputId: inputId,//company ID
+                        auth: token, //company Token
                         fingerprint: response, //user UID for user identification
                         event: _.extend({},
                             { $user : response },
-                            objects.props,
-                            { $event_name: objects.eventName }
+                            props,
+                            { $event_name: eventName }
                         ),
-                        callback: objects.callback,
+                        callback: callback,
                         callbackStore: this[CALLBACK_STORE]
+                    });*/
+            var bSend = {
+                    "inputId": inputId,//company ID
+                    "auth": token, //company Token
+                    "fingerprint": response, //user UID for user identification
+                    "conversion":conversion,
+                    "event": _.extend({},
+                         { "$user" : response },
+                           props,
+                           { "$event_name": eventName }
+                        )
+                    };
+            //console.log(bSend);
+                    new FreeAppsListing.PostRequest({
+                            action: ACTION_TRACK,
+                            inputId: inputId,
+                            body: JSON.stringify(bSend),
+                            callback: callback
                     });
                 });  
         }else{
-           new FreeAppsListing.GetRequest({
-                inputId: this._inputId,//company ID
-                auth: this._token, //company Token
-                fingerprint: this.fingerprint, //user UID for user identification
-                event: _.extend({},
-                    this.fingerprint,
-                    props,
-                    { $event_name: eventName }
-                ),
-                callback: callback,
-                callbackStore: this[CALLBACK_STORE]
-            }); 
+           var bSend = {
+                    "inputId": this._inputId,//company ID
+                    "auth": this._token, //company Token
+                    "fingerprint": $.cache('user').get('fingerprint'), //user UID for user identification
+                    "conversion":$.cache('user').get('conversion'),
+                    "event": _.extend({},
+                         { "$user" : $.cache('user').get('conversion') },
+                           props,
+                           { "$event_name": eventName }
+                        )
+                    };
+            //console.log(bSend);
+                    new FreeAppsListing.PostRequest({
+                            action: ACTION_TRACK,
+                            inputId: this._inputId,
+                            body: JSON.stringify(bSend),
+                            callback: callback
+                    }); 
         }
 
         
@@ -321,17 +372,15 @@ FreeAppsListing.Fingerprint = function(options,callback) {
             callback = options;
             options = void 0;
         }
-    this.options = options;
-    this.props = {};
-    this.load(options,callback);
+    this.load(callback);
     };
 
     _.extend(FreeAppsListing.Fingerprint.prototype, {
 
-    load: function(objects,callback) {
+    load: function(callback) {
         var fp = new Fingerprint2();
         fp.get(function(response){
-            if(_.isFunction(callback)) callback(response,objects);
+            if(_.isFunction(callback)) callback(response);
         });
     }
 });
@@ -352,6 +401,8 @@ FreeAppsListing.Request = {
             callback = this._callback;
         if (!url) return;
         xhr.open(opts.method, url, true);
+        xhr.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+        //xhr.setRequestHeader("Content-type","application/json;charset='UTF-8'");
         xhr.onreadystatechange = function(e) {
             if (xhr.readyState === 4) callback(xhr, opts);
         };
@@ -417,10 +468,10 @@ FreeAppsListing.Request = {
 
 // GET request wrapper
 FreeAppsListing.GetRequest = function(options) {
-    console.log(options);
     this.options = _.extend({}, {
         method: "GET"
     }, options);
+    //this.conversion = decodeURIComponent((new RegExp('[?|&]' + "publisher_ref_id" + '=' + '([^&;]+?)(&|#|;|$)').exec(context.location.search)||[,""])[1].replace(/\+/g, '%20'))||null;
     this.send();
 };
 
@@ -438,7 +489,7 @@ _.extend(FreeAppsListing.GetRequest.prototype, FreeAppsListing.Request, {
             params.callback = this._storeCallback(opts);
         }
         params._ = new Date().getTime().toString();
-        return url + "?" + this._serializeParams(params); //enconded in base64 params and encodeURIComponent on keys
+        return url + "?"+"conversionId="+this.conversion+"&" + this._serializeParams(params); //enconded in base64 params and encodeURIComponent on keys
     },
 
     getRequestType: function() {
@@ -505,7 +556,11 @@ FreeAppsListing.PostRequest = function(options) {
 _.extend(FreeAppsListing.PostRequest.prototype, FreeAppsListing.Request, {
 
     url: function() {
-        return [EVENTS_API, this.options.inputId].join("/");
+        var redirect = EVENTS_IDENTIFY;
+        if(this.options.action == ACTION_TRACK){
+            redirect = EVENTS_TRACK;
+        }
+        return [EVENTS_API, redirect].join("/");
     }
 
 });
@@ -1081,8 +1136,18 @@ _.UUID = (function() {
 // FreeAppsListing tracking library entry point
 // ------------------------------------
 $.domReady(function() {
+
+    //save the conversion id in the local storage to send it with every request to the server
+    var conversion = decodeURIComponent((new RegExp('[?|&]' + "publisher_ref_id" + '=' + '([^&;]+?)(&|#|;|$)').exec(context.location.search)||[,""])[1].replace(/\+/g, '%20'))||null;
+    if(!_.isUndefined(conversion) && !_.isNull(conversion)){
+       $.cache('user').set('conversion',conversion); 
+                     
+    }
     // Replace queue placeholder with library object
     context[FAL_QUEUE] = new FreeAppsListing.Library(context[FAL_QUEUE]);
+    
+    //console.log($.cache('user').get('name'));
+
 });
 
 
